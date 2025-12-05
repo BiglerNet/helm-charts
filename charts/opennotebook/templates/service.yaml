@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "opennotebook.fullname" . }}
+  labels:
+    {{- include "opennotebook.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.uiPort }}
+      targetPort: ui
+      protocol: TCP
+      name: ui
+    - port: {{ .Values.service.apiPort }}
+      targetPort: api
+      protocol: TCP
+      name: api
+  selector:
+    {{- include "opennotebook.selectorLabels" . | nindent 4 }}
