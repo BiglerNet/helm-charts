@@ -1,0 +1,105 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "opennotebook.fullname" . }}
+  labels:
+    {{- include "opennotebook.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "opennotebook.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "opennotebook.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "opennotebook.serviceAccountName" . }}
+      {{- with .Values.podSecurityContext }}
+      securityContext:-*
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          {{- with .Values.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: SURREAL_URL
+              value: "ws://localhost:8000/rpc"
+            - name: "SURREAL_USER"
+              value: "root"
+            - name: "SURREAL_PASSWORD"
+              value: "root"
+            - name: "SURREAL_NAMESPACE"
+              value: "open_notebook"
+            - name: "SURREAL_DATABASE"
+              value: "production"
+            - name: "API_URL"
+              value: {{ .Values.apiUrl | quote }}
+            {{- with .Values.env }}
+              {{- toYaml . | nindent 12 }}
+            {{- end }}
+          ports:
+            - name: ui
+              containerPort: {{ .Values.service.uiPort }}
+              protocol: TCP
+            - name: api
+              containerPort: {{ .Values.service.apiPort }}
+              protocol: TCP
+          {{- with .Values.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- if .Values.persistence.enabled }}
+          volumeMounts:
+            - name: notebook-data
+              mountPath: /app/data
+            - name: database
+              mountPath: /mydata
+          {{- end }}
+      {{- if .Values.persistence.enabled }}
+      volumes:
+        - name: notebook-data
+          persistentVolumeClaim:
+            claimName: {{ include "opennotebook.fullname" . }}-notebook
+        - name: database
+          persistentVolumeClaim:
+            claimName: {{ include "opennotebook.fullname" . }}-database
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
