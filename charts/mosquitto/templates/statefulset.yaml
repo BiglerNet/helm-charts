@@ -25,7 +25,6 @@ spec:
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      serviceAccountName: {{ include "mosquitto.serviceAccountName" . }}
       {{- with .Values.podSecurityContext }}
       securityContext:
         {{- toYaml . | nindent 8 }}
@@ -62,6 +61,8 @@ spec:
               mountPath: /mosquitto/config
             - name: logs
               mountPath: /mosquitto/log
+            - name: data
+              mountPath: /mosquitto/data
           {{- with .Values.volumeMounts }}
             {{- toYaml . | nindent 12 }}
           {{- end }}
@@ -71,6 +72,9 @@ spec:
             name: {{ include "mosquitto.fullname" . }}-config
         - name: logs
           emptyDir: {}
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ include "mosquitto.fullname" . }}-data
       {{- with .Values.volumes }}
         {{- toYaml . | nindent 8 }}
       {{- end }}

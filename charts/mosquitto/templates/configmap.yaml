@@ -6,13 +6,16 @@ metadata:
     {{- include "mosquitto.labels" . | nindent 4 }}
 data:
   mosquitto.conf: |
+    persistence true
+    persistence_location /mosquitto/data/
     # Mosquitto configuration file
     listener {{ .Values.service.plainPort }}
     protocol mqtt
+    allow_anonymous true
     
     {{- if .Values.service.securePort }}
     listener {{ .Values.service.securePort }}
-    protocol ssl
+    protocol mqtt
     {{- end }}
     
     {{- with .Values.config }}
